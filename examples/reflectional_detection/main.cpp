@@ -29,7 +29,7 @@
 /*  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE    */
 /*  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.     */
 /*****************************************************************************/
-
+#pragma once
 // PCL
 #include <pcl/io/ply_io.h>
 #include <pcl/common/time.h>
@@ -48,6 +48,11 @@
 
 // Project includes
 #include "vis.hpp"
+
+// custom includes
+#include <pcl/io/io.h>
+#include <pcl/features/integral_image_normal.h>
+#include <pcl/visualization/cloud_viewer.h>
 
 typedef pcl::PointXYZRGBNormal PointNC;
 
@@ -177,11 +182,30 @@ int main(int argc, char** argv)
   ds.filter(*sceneCloud);
   std::cout << sceneCloudHighRes->size() << " points in original cloud." << std::endl;
   std::cout << sceneCloud->size() << " points after downsampling." << std::endl;
-      
+
+  //----------------------------------------------------------------------------
+  // Point normal creation (LAVET AF OS)
+  //----------------------------------------------------------------------------
+  pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
+
+  pcl::IntegralImageNormalEstimation<PointNC, pcl::Normal> ne;
+  ne.setNormalEstimationMethod (ne.AVERAGE_3D_GRADIENT);
+  ne.setMaxDepthChangeFactor(0.02f);
+  ne.setNormalSmoothingSize(10.0f);
+  ne.setInputCloud(sceneCloud);
+  ne.compute(*normals);
+
+  //TODO: Create new PLY with created normals.
+  std::cerr << "Normals: " << std::endl;
+  for (std::size_t i = 0; i < normals->points.size (); ++i){
+    std::cerr << "    " << normals->points[i].n_x << " " << normals->points[i].n_y << " " << normals->points[i].n_z << std::endl;
+  }
+
+
   //----------------------------------------------------------------------------
   // Reflectional symmetry detection
   //----------------------------------------------------------------------------
-    
+  
   std::cout << "Detecting reflectional symmetry..." << std::endl;
   start = pcl::getTime (); 
   
